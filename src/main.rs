@@ -50,6 +50,14 @@ async fn query_device(adapter: &Adapter, addr: Address) -> bluer::Result<()> {
         rssi: device.rssi().await?.map(|rssi| rssi as i8).unwrap_or(-128),
         addr: device.address().0,
     };
+    
+    let client = Client::new();
+        let json_string = serde_json::to_string(&device_data).unwrap();
+        let response = client
+            .post("https://nevercrowd-lakb.shuttle.app/ingest")
+            .json(&json_string)
+            .send()
+            .await?;
 
     let mut file = OpenOptions::new()
         .append(true)
