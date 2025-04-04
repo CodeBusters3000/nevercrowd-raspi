@@ -1,13 +1,12 @@
-mod types;
-
-use types::*;
-
 use bluer::{Adapter, AdapterEvent, Address, DeviceEvent, DiscoveryFilter, DiscoveryTransport};
 use futures::{pin_mut, stream::SelectAll, StreamExt};
+use nevercrowd_core::*;
+use reqwest::Client;
 use std::{collections::HashSet, env, fs::OpenOptions, io::Write, time::Instant};
 
-async fn query_device(adapter: &Adapter, addr: Address) -> bluer::Result<()> {
+async fn query_device(adapter: &Adapter, addr: Address, device_name: String) -> bluer::Result<()> {
     let device = adapter.device(addr)?;
+    println!("    Name:       {}", device_name);
     println!("    Address type:       {}", device.address_type().await?);
     println!("    Name:               {:?}", device.name().await?);
     println!("    Icon:               {:?}", device.icon().await?);
@@ -39,36 +38,38 @@ async fn query_device(adapter: &Adapter, addr: Address) -> bluer::Result<()> {
 
     let company_identifier = manufacture_data.clone().map(|(company, _)| company);
     let manufacture_payload = manufacture_data.map(|(_, payload)| payload);
-
     let device_data = BLEData {
-        device_id: String::from("raspi-0"),
-        time_stamp: chrono::Utc::now().timestamp(),
+        device_id: device_name,
+        time_stamp: chrono::Utc::now(),
         name: device.name().await?,
         tx_power: device.tx_power().await?.map(|tx| tx as u8),
         company_identifier,
         manufacture_payload,
         rssi: device.rssi().await?.map(|rssi| rssi as i8).unwrap_or(-128),
         addr: device.address().0,
+        payload: Vec::new(),
     };
-    
     let client = Client::new();
-        let json_string = serde_json::to_string(&device_data).unwrap();
-        let response = client
-            .post("https://nevercrowd-lakb.shuttle.app/ingest")
-            .json(&json_string)
-            .send()
-            .await?;
+    let response = client
+        .post("https://nevercrowd-lakb.shuttle.app/ingest")
+        .json(&vec![device_data])
+        .send()
+        .await
+        .unwrap();
 
-    let mut file = OpenOptions::new()
-        .append(true)
-        .open("scan.json")
-        .expect("Could not open file");
+    let response_text = response.text().await;
+    println!("Response: {:?}", response_text);
 
-    file.write(&serde_json::to_vec(&device_data).expect("Could not serialize"))
-        .expect("Could not append");
+    // let mut file = OpenOptions::new()
+    //     .append(true)
+    //     .open("scan.json")
+    //     .expect("Could not open file");
 
-    file.write(",".as_bytes())
-        .expect("Could not write delimeter");
+    // file.write(&serde_json::to_vec(&device_data).expect("Could not serialize"))
+    //     .expect("Could not append");
+
+    // file.write(",".as_bytes())
+    //     .expect("Could not write delimeter");
 
     Ok(())
 }
@@ -84,6 +85,7 @@ async fn query_all_device_properties(adapter: &Adapter, addr: Address) -> bluer:
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> bluer::Result<()> {
+    let device_name = env::args().nth(1);
     let with_changes = env::args().any(|arg| arg == "--changes");
     let all_properties = env::args().any(|arg| arg == "--all-properties");
     let le_only = env::args().any(|arg| arg == "--le");
@@ -135,7 +137,7 @@ async fn main() -> bluer::Result<()> {
                         let res = if all_properties {
                             query_all_device_properties(&adapter, addr).await
                         } else {
-                            query_device(&adapter, addr).await
+                            query_device(&adapter, addr, device_name.clone().unwrap()).await
                         };
                         if let Err(err) = res {
                             println!("    Error: {}", &err);

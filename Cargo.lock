@@ -202,6 +202,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits",
+ "serde",
  "wasm-bindgen",
  "windows-link",
 ]
@@ -964,6 +965,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "nevercrowd-core"
+version = "0.1.0"
+source = "git+https://github.com/CodeBusters3000/nevercrowd-core#e278dd593b92e51253edec4226ad0638a0c5e661"
+dependencies = [
+ "bitflags 2.9.0",
+ "chrono",
+ "num_enum",
+ "serde",
+]
+
+[[package]]
 name = "nix"
 version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1064,6 +1076,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d05e27ee213611ffe7d6348b942e8f942b37114c00cc03cec254295a4a17852e"
 
 [[package]]
+name = "openssl-src"
+version = "300.4.2+3.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "168ce4e058f975fe43e89d9ccf78ca668601887ae736090aacc23ae353c298e2"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "openssl-sys"
 version = "0.9.107"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1071,6 +1092,7 @@ checksum = "8288979acd84749c744a9014b4382d42b8f7b2592847b5afb2ed29e5d16ede07"
 dependencies = [
  "cc",
  "libc",
+ "openssl-src",
  "pkg-config",
  "vcpkg",
 ]
@@ -1084,7 +1106,9 @@ dependencies = [
  "chrono",
  "env_logger",
  "futures",
+ "nevercrowd-core",
  "num_enum",
+ "openssl",
  "reqwest",
  "serde",
  "serde_json",
